@@ -1,28 +1,41 @@
-import os
+from pathlib import Path
+import subprocess
 import shutil
-import tempfile
-from git import Repo
 
-TEMP_FOLDER = "temp_repos"
+
+TEMP_DIR = Path("temp")
 
 
 def clean_temp():
-    if os.path.exists(TEMP_FOLDER):
-        shutil.rmtree(TEMP_FOLDER)
+    if TEMP_DIR.exists():
+        shutil.rmtree(TEMP_DIR)
 
-    os.makedirs(TEMP_FOLDER, exist_ok=True)
+    TEMP_DIR.mkdir(exist_ok=True)
 
 
-def clone_repo(repo_url: str):
+def clone_repo(repo_url: str) -> Path:
+
     clean_temp()
 
     repo_name = repo_url.rstrip("/").split("/")[-1]
-    repo_path = os.path.join(TEMP_FOLDER, repo_name)
+    destination = TEMP_DIR / repo_name
 
-    Repo.clone_from(
-        repo_url,
-        repo_path,
-        depth=1
+    print(f"Cloning {repo_name}...")
+
+    result = subprocess.run(
+        [
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            repo_url,
+            str(destination),
+        ],
+        capture_output=True,
+        text=True,
     )
 
-    return repo_path
+    if result.returncode != 0:
+        raise Exception(result.stderr)
+
+    return destination
